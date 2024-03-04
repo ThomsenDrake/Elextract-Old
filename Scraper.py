@@ -5,84 +5,99 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import asyncio
 import websockets
-import time
-import requests
 from bs4 import BeautifulSoup
 import pickle  # For storing scraping patterns
 
-# ... imports ...
+class WebsiteTrainer:
+    def __init__(self):
+        self.driver = None
 
-async def train_scraper():
-    options = Options()                             
-    options.add_argument('--verbose')                  
-    driver = webdriver.Chrome(executable_path="/usr/local/bin/chromedriver", options=options)  
+    async def start_training(self):
+        website_url = self._get_website_url()
+        self._initialize_driver()
+        try:
+            await self._load_website(website_url)
+            await self._inject_navigation_script()
+            # ... add methods for other training steps
+        finally:
+            self._close_driver()
 
-    website_url = "https://www.wikipedia.org"
-    driver.get(website_url)
-    # inject_navigation_script(driver)  # Function to inject the tracking script
-    
-    # Inject the script
-    # with open('navigation_tracker.js', 'r') as f:
-    #    js_code = f.read()
-    # driver.execute_script(js_code)
-    # ... (Wait for the user's signal that they've reached the target data)
-    
-    driver.get(website_url)  # Replace with a test website
-    # try:
-    #     inject_navigation_script(driver)
-    # except Exception as e: 
-    #     print(f"Error during script injection: {e}")
+    def _get_website_url(self):
+        website_url = input("Enter the URL of the website to train on: ")
+        if not website_url.startswith('https://') and not website_url.startswith('http://'):
+            website_url = 'https://' + website_url
+        return website_url
 
-    # highlight_largest_table(driver)
-    # if confirm_target_element(driver):
-    #     navigation_path = get_navigation_path_from_browser()
-    #     target_element_info = get_target_element_info(driver)
-    #     config = {
-    #         "navigation": navigation_path,
-    #         "target_element": target_element_info
-    #     }
-    #     store_config(website_url, config) 
+    def _initialize_driver(self):
+        options = Options()                             
+        options.add_argument('--verbose')                  
+        self.driver = webdriver.Chrome(executable_path="/usr/local/bin/chromedriver", options=options) 
 
-    # driver.quit()
-    time.sleep(5)
+    async def _load_website(self, url):
+        self.driver.get(url)
 
-# ... (Other functions)
+    async def _inject_navigation_script(self):
+        with open('navigation_tracker.js', 'r') as f:
+            js_code = f.read()
+        self.driver.execute_script(js_code)
 
-def inject_navigation_script(driver):
-    driver.execute_script("alert('JavaScript Injection Test!');")  
-    alert = driver.switch_to.alert  # Switch to the alert
-    alert.accept()  # Accept (or dismiss) the alert
+    # ... add more methods for the training process...
 
-def highlight_largest_table(driver):
-    # ... (JavaScript code to find and highlight)
-    pass # Temporary placeholder
+    def _close_driver(self):
+        if self.driver:
+            self.driver.quit()
 
-def confirm_target_element(driver):
-    # ... (JavaScript to use an alert/prompt)
-    pass # Temporary placeholder
 
-def get_navigation_path_from_browser():
-    # ... (Mechanism to retrieve path from JavaScript)
-    pass # Temporary placeholder
+class WebsiteScraper:
+    def __init__(self, config):
+        self.config = config
+        self.driver = None
 
-def get_target_element_info(driver):
-    # ... (Find ID, tagname, etc., of the highlighted table)
-    pass # Temporary placeholder
+    def scrape(self):
+        # ... Setup WebDriver based on the configuration ...
+        self.driver = webdriver.Chrome(...) 
 
-def store_config(website_url, config):
-    import json
-    with open(f'{website_url}_config.json', 'w') as f:
-        json.dump(config, f)
+        # ...  Scraping logic using the self.config data ...
 
-async def receive_navigation_path(websocket, path): 
-    navigation_path = await websocket.recv()
-    print(f"Received navigation path: {navigation_path}")
-    # ... store or process the navigation_path
+        self.driver.quit() 
+
+def display_menu():
+    print("Welcome to the Web Scraper!")
+    print("1. Scrape a previously trained website")
+    print("2. Train the scraper on a new website")
+    choice = input("Please enter your choice (1 or 2): ")
+    return choice
+
+def load_trained_sites():
+    # (You'll need a mechanism to track/store trained site URLs, e.g., a file)
+    # Example using a simple list for now:
+    trained_sites = ["https://www.example.com", "https://www.wikipedia.org"]
+    if not trained_sites:
+        print("No trained websites found.")
+        return None
+
+    print("Available trained websites:")
+    for i, site in enumerate(trained_sites):
+        print(f"{i+1}. {site}")
+
+    site_index = int(input("Choose a website to scrape: ")) - 1
+    return trained_sites[site_index]
 
 async def main():
-    start_server = websockets.serve(receive_navigation_path, "localhost", 8000)
-    await train_scraper()  # Await the completion of your scraper logic
-    await start_server  
+    choice = display_menu()
+
+    if choice == '1':
+        website_url = load_trained_sites()
+        if website_url:
+            # Load configuration using website_url
+            config = load_config(website_url) 
+            scraper = WebsiteScraper(config)
+            scraper.scrape()
+    elif choice == '2':
+        trainer = WebsiteTrainer()
+        await trainer.start_training() 
+    else:
+        print("Invalid choice. Exiting.")
 
 if __name__ == "__main__":
-    asyncio.run(main())  # Run the main coroutine
+    asyncio.run(main()) 
